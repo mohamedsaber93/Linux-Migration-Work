@@ -1,0 +1,71 @@
+#!/bin/bash
+# Check if the script is being run as root
+if [ "$(id -u)" != "0" ]; then
+    echo "This script must be run as root"
+    exit 1
+fi
+# Define variables for the server specs
+cpu_cores=$(grep -c ^processor /proc/cpuinfo)
+ram=$(free -m | awk '/Mem:/ {print $2}')
+disk_space=$(df -h / | awk '/\// {print $4}')
+# Print the server specs
+echo "Server specifications:"
+echo "CPU cores: $cpu_cores"
+echo "RAM: $ram MB"
+echo "Disk space: $disk_space"
+# Check for required software packages
+echo "Checking for required software packages..."
+required_packages=(apache2 mysql-client php php-mysql)
+missing_packages=()
+for package in "${required_packages[@]}"; do
+    if ! dpkg -s "$package" >/dev/null 2>&1; then
+        missing_packages+=("$package")
+    fi
+done
+# Print any missing packages
+if [ ${#missing_packages[@]} -ne 0 ]; then
+    echo "The following required packages are missing:"
+    for package in "${missing_packages[@]}"; do
+        echo "  $package"
+    done
+else
+    echo "All required packages are installed"
+fi
+# Check for required ports
+echo "Checking for required ports..."
+required_ports=(80 443 3306)
+missing_ports=()
+for port in "${required_ports[@]}"; do
+    if ! nc -z localhost "$port" >/dev/null 2>&1; then
+        missing_ports+=("$port")
+    fi
+done
+# Print any missing ports
+if [ ${#missing_ports[@]} -ne 0 ]; then
+    echo "The following required ports are closed:"
+    for port in "${missing_ports[@]}"; do
+        echo "  $port"
+    done
+else
+    echo "All required ports are open"
+fi
+# Check for required directories
+echo "Checking for required directories..."
+required_directories=("/var/www/html" "/var/log/apache2")
+missing_directories=()
+for directory in "${required_directories[@]}"; do
+    if [ ! -d "$directory" ]; then
+        missing_directories+=("$directory")
+    fi
+done
+# Print any missing directories
+if [ ${#missing_directories[@]} -ne 0 ]; then
+    echo "The following required directories are missing:"
+    for directory in "${missing_directories[@]}"; do
+        echo "  $directory"
+    done
+else
+    echo "All required directories exist"
+fi
+echo "Server specification check complete"
+----------------------------------------------------------------------------
